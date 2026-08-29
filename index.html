@@ -1665,24 +1665,31 @@ async function registerHistoricPlayer(player){
   }
 }
 
-  }catch(e){ /* nada guardado todavía */ }
+async function loadCollectionData(){
   try{
-    const res2 = await window.storage.get('achievements-progress', false);
-    if(res2 && res2.value){
-      const saved2 = JSON.parse(res2.value);
-      (saved2.thresholds || []).forEach(t => unlockedAchievements.add(t));
-      igualUnlocked = !!saved2.igual;
-      historicCompleteUnlocked = !!saved2.historicComplete;
+    const res1 = await window.storage.get('achievements-progress', false);
+    if(res1 && res1.value){
+      const saved1 = JSON.parse(res1.value);
+      (saved1.thresholds || []).forEach(t => unlockedAchievements.add(t));
+      igualUnlocked = !!saved1.igual;
+      historicCompleteUnlocked = !!saved1.historicComplete;
     }
   }catch(e){ /* nada guardado todavía */ }
   try{
-    loadCollectionData
+    const res2 = await window.storage.get('historic-collected', false);
+    if(res2 && res2.value){
+      JSON.parse(res2.value).forEach(n => collectedHistoric.add(n));
+    }
+  }catch(e){ /* nada guardado todavía */ }
+  try{
+    const res3 = await window.storage.get('current-collected', false);
     if(res3 && res3.value){
-      JSON.parse(res3.value).forEach(n => collectedHistoric.add(n));
+      JSON.parse(res3.value).forEach(n => collectedCurrent.add(n));
     }
   }catch(e){ /* nada guardado todavía */ }
 }
-const COLLECTION_CONTINENTS = [...]
+
+const COLLECTION_CONTINENTS = ['Europa','Sudamérica','África','Asia','Norteamérica'];
 function renderCollectionPanel(){
   const achvGrid = document.getElementById('achvGrid');
   const scoreChips = ACHIEVEMENT_TIERS.map(a=>{
@@ -1696,7 +1703,24 @@ function renderCollectionPanel(){
   const historicChip = '<div class="achv-chip' + (historicCompleteUnlocked ? ' unlocked' : '') + '" style="' + (historicCompleteUnlocked ? 'color:#FFD700' : '') + '">' +
     '<span class="achv-chip-dot" style="' + (historicCompleteUnlocked ? 'background:#FFD700' : '') + '"></span>Enciclopedia del Fútbol (' + collectedHistoric.size + '/' + HISTORIC_PLAYERS.length + ')</div>';
   achvGrid.innerHTML = scoreChips.join('') + igualChip + historicChip;
-
+  // La "Colección de jugadores" se basa únicamente en los jugadores del modo actual
+  // (PLAYERS). El modo Leyendas tiene su propio logro (Enciclopedia del Fútbol, arriba)
+  // pero no cuenta para esta colección.
+  const progressEl = document.getElementById('collectionProgress');
+  progressEl.innerHTML = COLLECTION_CONTINENTS.map(cont=>{
+    const playersInCont = PLAYERS.filter(p => p.continent === cont);
+    const collectedInCont = playersInCont.filter(p => collectedCurrent.has(p.name));
+    const pct = playersInCont.length ? Math.round((collectedInCont.length / playersInCont.length) * 100) : 0;
+    const namesHtml = collectedInCont.length
+      ? '<div class="collection-names">' + collectedInCont.map(p => escapeHtml(p.name)).join(' · ') + '</div>'
+      : '';
+    return '<div class="cont-progress-row">' +
+      '<div class="cont-progress-label"><span>' + cont + '</span><strong>' + collectedInCont.length + ' / ' + playersInCont.length + '</strong></div>' +
+      '<div class="cont-progress-bar"><div class="cont-progress-fill" style="width:' + pct + '%"></div></div>' +
+      namesHtml +
+      '</div>';
+  }).join('');
+}
 
 function shuffle(arr){
   const a = [...arr];
@@ -2110,7 +2134,7 @@ document.getElementById('collectionToggle').addEventListener('click', ()=>{
   panel.classList.toggle('show');
   if(panel.classList.contains('show')){ renderCollectionPanel(); }
 });
-
+loadCollectionData();
 startGame();
 </script>
   <div style="position: fixed; bottom: 10px; right: 15px; z-index: 9999; background: rgba(0,0,0,0.8); padding: 5px 10px; border-radius: 5px; font-size: 12px;">
