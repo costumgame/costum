@@ -17,6 +17,23 @@
 <title>ValorCracks — ¿Mayor, igual o menor?</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Share+Tech+Mono&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-analytics.js";
+
+  const firebaseConfig = {
+    apiKey: "AisaSyDUaoMOdo4B1oOyEb5pjlf4UUcf0Rc5nI",
+    authDomain: "valorcracks-eeea0.firebaseapp.com",
+    projectId: "valorcracks-eeea0",
+    storageBucket: "valorcracks-eeea0.firebasestorage.app",
+    messagingSenderId: "340872220338",
+    appId: "1:340872220338:web:6d9b57bb7546a16ec43ab",
+    measurementId: "G-N2JXBW2E8T"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+</script>
 <style>
   :root{
     --pitch-dark:#0B3D2E;
