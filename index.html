@@ -2157,25 +2157,7 @@ document.querySelectorAll('.duration-btn').forEach(btn=>{
     gameConfig.duration = parseInt(btn.dataset.duration, 10);
   });
 });
-// Sistema de colección definitivo con localStorage
-let collectedPlayers = JSON.parse(localStorage.getItem('valorcracks_collection')) || [];
 
-function loadCollectionProgress() {
-    collectedPlayers = JSON.parse(localStorage.getItem('valorcracks_collection')) || [];
-    if (typeof renderCollectionPanel === 'function') {
-        renderCollectionPanel();
-    }
-}
-
-function unlockPlayer(playerId) {
-    if (!collectedPlayers.includes(playerId)) {
-        collectedPlayers.push(playerId);
-        localStorage.setItem('valorcracks_collection', JSON.stringify(collectedPlayers));
-        if (typeof renderCollectionPanel === 'function') {
-            renderCollectionPanel();
-        }
-    }
-}
 document.getElementById('leaderboardToggle').addEventListener('click', ()=>{
   const panel = document.getElementById('leaderboardPanel');
   panel.classList.toggle('show');
