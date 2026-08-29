@@ -491,6 +491,26 @@
     text-align:center;
   }
   .result-panel.show{ display:block; }
+  .collection-panel{
+  display:none;
+  background:#0C3826;
+  border:1px solid var(--gold);
+  border-radius:14px;
+  padding:20px 22px;
+  margin-top:16px;
+  text-align:left;
+}
+.collection-panel.show{ display:block; }
+.collection-section-title{
+  font-family:'Anton', sans-serif;
+  font-size:18px;
+  color:var(--gold);
+  margin:0 0 12px;
+}
+.collection-panel .collection-section-title + .collection-section-title,
+.collection-panel #collectionProgress{
+  margin-top:18px;
+}
   .result-title{
     font-family:'Anton', sans-serif;
     font-size:20px;
