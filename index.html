@@ -644,6 +644,26 @@
     .sb-box{ min-width:100px; padding:9px 16px; }
   }
 </style>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+  const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyDUaoMOdo4B1OoYeB5pjlfa3UUcfORc5nI",
+    authDomain: "valorcracks-eeea0.firebaseapp.com",
+    databaseURL: "https://valorcracks-eeea0-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "valorcracks-eeea0",
+    storageBucket: "valorcracks-eeea0.firebasestorage.app",
+    messagingSenderId: "340872220338",
+    appId: "1:340872220338:web:6d9b57bb7546a16ec4c3ab"
+  };
+  let firebaseDb = null;
+  try{
+    if(FIREBASE_CONFIG.apiKey && !FIREBASE_CONFIG.apiKey.startsWith('PON_AQUI')){
+      firebase.initializeApp(FIREBASE_CONFIG);
+      firebaseDb = firebase.database();
+    }
+  }catch(e){ console.error('Firebase no se pudo inicializar', e); }
+</script>
 </head>
 <body>
 <div class="wrap">
@@ -1632,15 +1652,26 @@ function showAchievementToast(icon, title, subtitle, color){
   achvToastTimer = setTimeout(()=> toast.classList.remove('show'), 3000);
 }
 
+function localSave(key, value){
+  try{ localStorage.setItem('valorcracks:' + key, value); }
+  catch(e){ console.error('No se pudo guardar en localStorage', key, e); }
+}
+function localLoad(key){
+  try{ return localStorage.getItem('valorcracks:' + key); }
+  catch(e){ return null; }
+}
+
 async function persistAchievements(){
-  if(typeof window.storage === 'undefined') return;
-  try{
-    await window.storage.set('achievements-progress', JSON.stringify({
-      thresholds: [...unlockedAchievements],
-      igual: igualUnlocked,
-      historicComplete: historicCompleteUnlocked
-    }), false);
-  }catch(e){ console.error('No se pudo guardar el progreso de logros', e); }
+  const payload = JSON.stringify({
+    thresholds: [...unlockedAchievements],
+    igual: igualUnlocked,
+    historicComplete: historicCompleteUnlocked
+  });
+  localSave('achievements-progress', payload);
+  if(typeof window.storage !== 'undefined'){
+    try{ await window.storage.set('achievements-progress', payload, false); }
+    catch(e){ console.error('No se pudo guardar el progreso de logros (window.storage)', e); }
+  }
 }
 
 function checkAchievements(scoreVal){
@@ -1664,19 +1695,21 @@ function checkIgualAchievement(){
 async function registerCorrectPlayer(player){
   if(collectedCurrent.has(player.name)) return;
   collectedCurrent.add(player.name);
+  const payload = JSON.stringify([...collectedCurrent]);
+  localSave('current-collected', payload);
   if(typeof window.storage !== 'undefined'){
-    try{
-      await window.storage.set('current-collected', JSON.stringify([...collectedCurrent]), false);
-    }catch(e){ console.error('No se pudo guardar la colección de jugadores', e); }
+    try{ await window.storage.set('current-collected', payload, false); }
+    catch(e){ console.error('No se pudo guardar la colección de jugadores (window.storage)', e); }
   }
 }
 async function registerHistoricPlayer(player){
   if(collectedHistoric.has(player.name)) return;
   collectedHistoric.add(player.name);
+  const payload = JSON.stringify([...collectedHistoric]);
+  localSave('historic-collected', payload);
   if(typeof window.storage !== 'undefined'){
-    try{
-      await window.storage.set('historic-collected', JSON.stringify([...collectedHistoric]), false);
-    }catch(e){ console.error('No se pudo guardar la colección de leyendas', e); }
+    try{ await window.storage.set('historic-collected', payload, false); }
+    catch(e){ console.error('No se pudo guardar la colección de leyendas (window.storage)', e); }
   }
   if(!historicCompleteUnlocked && collectedHistoric.size >= HISTORIC_PLAYERS.length){
     historicCompleteUnlocked = true;
@@ -1687,28 +1720,49 @@ async function registerHistoricPlayer(player){
 
 async function loadCollectionData(){
   try{
-    const res1 = await window.storage.get('achievements-progress', false);
-    if(res1 && res1.value){
-      const saved1 = JSON.parse(res1.value);
+    const raw1 = localLoad('achievements-progress');
+    if(raw1){
+      const saved1 = JSON.parse(raw1);
       (saved1.thresholds || []).forEach(t => unlockedAchievements.add(t));
       igualUnlocked = !!saved1.igual;
       historicCompleteUnlocked = !!saved1.historicComplete;
     }
   }catch(e){ /* nada guardado todavía */ }
   try{
-    const res2 = await window.storage.get('historic-collected', false);
-    if(res2 && res2.value){
-      JSON.parse(res2.value).forEach(n => collectedHistoric.add(n));
-    }
+    const raw2 = localLoad('historic-collected');
+    if(raw2){ JSON.parse(raw2).forEach(n => collectedHistoric.add(n)); }
   }catch(e){ /* nada guardado todavía */ }
   try{
-    const res3 = await window.storage.get('current-collected', false);
-    if(res3 && res3.value){
-      JSON.parse(res3.value).forEach(n => collectedCurrent.add(n));
-    }
+    const raw3 = localLoad('current-collected');
+    if(raw3){ JSON.parse(raw3).forEach(n => collectedCurrent.add(n)); }
   }catch(e){ /* nada guardado todavía */ }
-}
 
+  if(typeof window.storage !== 'undefined'){
+    if(unlockedAchievements.size === 0 && !igualUnlocked && !historicCompleteUnlocked){
+      try{
+        const res1 = await window.storage.get('achievements-progress', false);
+        if(res1 && res1.value){
+          const saved1 = JSON.parse(res1.value);
+          (saved1.thresholds || []).forEach(t => unlockedAchievements.add(t));
+          igualUnlocked = !!saved1.igual;
+          historicCompleteUnlocked = !!saved1.historicComplete;
+        }
+      }catch(e){ /* nada guardado todavía */ }
+    }
+    if(collectedHistoric.size === 0){
+      try{
+        const res2 = await window.storage.get('historic-collected', false);
+        if(res2 && res2.value){ JSON.parse(res2.value).forEach(n => collectedHistoric.add(n)); }
+      }catch(e){ /* nada guardado todavía */ }
+    }
+    if(collectedCurrent.size === 0){
+      try{
+        const res3 = await window.storage.get('current-collected', false);
+        if(res3 && res3.value){ JSON.parse(res3.value).forEach(n => collectedCurrent.add(n)); }
+      }catch(e){ /* nada guardado todavía */ }
+    }
+  }
+}
 const COLLECTION_CONTINENTS = ['Europa','Sudamérica','África','Asia','Norteamérica'];
 function renderCollectionPanel(){
   const achvGrid = document.getElementById('achvGrid');
@@ -1967,40 +2021,57 @@ function getPlayerName(){
 }
 
 async function submitToLeaderboard(){
-  if(typeof window.storage === 'undefined') return;
+  const modePrefix = gameConfig.dataset === 'historic' ? 'Leyendas · ' : '';
+  const entry = {
+    name: getPlayerName(),
+    score: score,
+    mode: modePrefix + (gameConfig.mode === 'timed' ? ('Contrarreloj ' + gameConfig.duration + 's') : 'Racha infinita'),
+    date: Date.now()
+  };
+
+  if(firebaseDb){
+    try{
+      await firebaseDb.ref('leaderboard').push(entry);
+      loadLeaderboard();
+      return;
+    }catch(e){ console.error('No se pudo guardar en Firebase', e); }
+  }
+
   try{
     let entries = [];
-    try{
-      const res = await window.storage.get('leaderboard-entries', true);
-      if(res && res.value) entries = JSON.parse(res.value);
-    }catch(e){ entries = []; }
-
-    const modePrefix = gameConfig.dataset === 'historic' ? 'Leyendas · ' : '';
-    entries.push({
-      name: getPlayerName(),
-      score: score,
-      mode: modePrefix + (gameConfig.mode === 'timed' ? ('Contrarreloj ' + gameConfig.duration + 's') : 'Racha infinita'),
-      date: Date.now()
-    });
+    const raw = localLoad('leaderboard-entries');
+    if(raw) entries = JSON.parse(raw);
+    entries.push(entry);
     entries.sort((a,b)=> b.score - a.score);
     entries = entries.slice(0, 100);
-
-    await window.storage.set('leaderboard-entries', JSON.stringify(entries), true);
+    localSave('leaderboard-entries', JSON.stringify(entries));
     renderLeaderboard(entries);
   }catch(e){
-    console.error('No se pudo guardar en el ranking mundial', e);
+    console.error('No se pudo guardar el ranking localmente', e);
   }
 }
 
 async function loadLeaderboard(){
   const listEl = document.getElementById('leaderboardList');
-  if(typeof window.storage === 'undefined'){
-    listEl.innerHTML = '<div class="result-line">El ranking mundial solo está disponible mientras juegas dentro de Claude.</div>';
-    return;
+
+  if(firebaseDb){
+    try{
+      const snap = await firebaseDb.ref('leaderboard').orderByChild('score').limitToLast(15).once('value');
+      const entries = [];
+      snap.forEach(child => entries.push(child.val()));
+      entries.sort((a,b)=> b.score - a.score);
+      renderLeaderboard(entries);
+      return;
+    }catch(e){
+      console.error('No se pudo leer Firebase', e);
+      listEl.innerHTML = '<div class="result-line">No se pudo conectar con el ranking mundial. Revisa la configuración de Firebase.</div>';
+      return;
+    }
   }
+
   try{
-    const res = await window.storage.get('leaderboard-entries', true);
-    const entries = res && res.value ? JSON.parse(res.value) : [];
+    const raw = localLoad('leaderboard-entries');
+    const entries = raw ? JSON.parse(raw) : [];
     renderLeaderboard(entries);
   }catch(e){
     renderLeaderboard([]);
