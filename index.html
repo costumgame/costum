@@ -2157,21 +2157,13 @@ document.querySelectorAll('.duration-btn').forEach(btn=>{
     gameConfig.duration = parseInt(btn.dataset.duration, 10);
   });
 });
-// Sistema de colección local adaptado
-let collectedPlayers = JSON.parse(localStorage.getItem('valorcracks_collection')) || [];
+// Forzamos datos de prueba en la colección local
+let collectedPlayers = ["player_1", "player_2"];
+localStorage.setItem('valorcracks_collection', JSON.stringify(collectedPlayers));
 
 function loadCollectionProgress() {
-    collectedPlayers = JSON.parse(localStorage.getItem('valorcracks_collection')) || [];
     if (typeof renderCollectionPanel === 'function') {
         renderCollectionPanel();
-    }
-}
-
-// Función para guardar cuando aciertas un jugador
-function unlockPlayer(playerId) {
-    if (!collectedPlayers.includes(playerId)) {
-        collectedPlayers.push(playerId);
-        localStorage.setItem('valorcracks_collection', JSON.stringify(collectedPlayers));
     }
 }
 document.getElementById('leaderboardToggle').addEventListener('click', ()=>{
