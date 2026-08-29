@@ -1677,40 +1677,6 @@ async function registerHistoricPlayer(player){
   }
 }
 
-const CONTINENT_ORDER = ["Europa","Sudamérica","África","Asia","Norteamérica"];
-let collectedPlayers = { "Europa": new Set(), "Sudamérica": new Set(), "África": new Set(), "Asia": new Set(), "Norteamérica": new Set() };
-let CONTINENT_TOTALS = {};
-
-function computeContinentTotals(){
-  CONTINENT_TOTALS = {};
-  PLAYERS.forEach(p=>{
-    CONTINENT_TOTALS[p.continent] = (CONTINENT_TOTALS[p.continent] || 0) + 1;
-  });
-}
-
-async function registerCorrectPlayer(player){
-  if(!collectedPlayers[player.continent]) collectedPlayers[player.continent] = new Set();
-  if(collectedPlayers[player.continent].has(player.name)) return;
-  collectedPlayers[player.continent].add(player.name);
-  if(typeof window.storage === 'undefined') return;
-  try{
-    const toSave = {};
-    CONTINENT_ORDER.forEach(c=>{ toSave[c] = [...(collectedPlayers[c] || [])]; });
-    await window.storage.set('collected-players', JSON.stringify(toSave), false);
-  }catch(e){ console.error('No se pudo guardar la colección', e); }
-}
-
-async function loadCollectionProgress(){
-  computeContinentTotals();
-  if(typeof window.storage === 'undefined') return;
-  try{
-    const res = await window.storage.get('collected-players', false);
-    if(res && res.value){
-      const saved = JSON.parse(res.value);
-      CONTINENT_ORDER.forEach(c=>{
-        collectedPlayers[c] = new Set(saved[c] || []);
-      });
-    }
   }catch(e){ /* nada guardado todavía */ }
   try{
     const res2 = await window.storage.get('achievements-progress', false);
@@ -1743,18 +1709,8 @@ function renderCollectionPanel(){
     '<span class="achv-chip-dot" style="' + (historicCompleteUnlocked ? 'background:#FFD700' : '') + '"></span>Enciclopedia del Fútbol (' + collectedHistoric.size + '/' + HISTORIC_PLAYERS.length + ')</div>';
   achvGrid.innerHTML = scoreChips.join('') + igualChip + historicChip;
 
-  const progressEl = document.getElementById('collectionProgress');
-  progressEl.innerHTML = CONTINENT_ORDER.map(cont=>{
-    const total = CONTINENT_TOTALS[cont] || 0;
-    const got = collectedPlayers[cont] ? collectedPlayers[cont].size : 0;
-    const pct = total ? Math.round((got/total)*100) : 0;
-    const names = collectedPlayers[cont] && collectedPlayers[cont].size ? [...collectedPlayers[cont]].sort().join(', ') : '';
-    return '<div class="cont-progress-row">' +
-      '<div class="cont-progress-label"><span>' + cont + '</span><strong>' + got + ' / ' + total + '</strong></div>' +
-      '<div class="cont-progress-bar"><div class="cont-progress-fill" style="width:' + pct + '%"></div></div>' +
-      (names ? '<div class="collection-names">' + names + '</div>' : '') +
-      '</div>';
-  }).join('');
+const progressEl = document.getElementById('collectionProgress');
+if(progressEl) progressEl.innerHTML = '';
 }
 
 function shuffle(arr){
