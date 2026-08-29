@@ -2157,31 +2157,21 @@ document.querySelectorAll('.duration-btn').forEach(btn=>{
     gameConfig.duration = parseInt(btn.dataset.duration, 10);
   });
 });
-// Variable global para la colección local
-let userCollection = JSON.parse(localStorage.getItem('valorcracks_collection')) || [];
+// Sistema de colección local adaptado
+let collectedPlayers = JSON.parse(localStorage.getItem('valorcracks_collection')) || [];
 
-// Carga los datos al iniciar el juego
 function loadCollectionProgress() {
-    userCollection = JSON.parse(localStorage.getItem('valorcracks_collection')) || [];
-    // Actualiza la pantalla si existe la función
+    collectedPlayers = JSON.parse(localStorage.getItem('valorcracks_collection')) || [];
     if (typeof renderCollectionPanel === 'function') {
         renderCollectionPanel();
     }
 }
 
-// Guarda un nuevo jugador cuando lo descubres
-function savePlayerToCollection(playerId) {
-    if (!userCollection.includes(playerId)) {
-        userCollection.push(playerId);
-        localStorage.setItem('valorcracks_collection', JSON.stringify(userCollection));
-    }
-}
-
-// Guarda tu récord máximo
-function updateLocalRecord(score) {
-    let currentRecord = parseInt(localStorage.getItem('valorcracks_record')) || 0;
-    if (score > currentRecord) {
-        localStorage.setItem('valorcracks_record', score);
+// Función para guardar cuando aciertas un jugador
+function unlockPlayer(playerId) {
+    if (!collectedPlayers.includes(playerId)) {
+        collectedPlayers.push(playerId);
+        localStorage.setItem('valorcracks_collection', JSON.stringify(collectedPlayers));
     }
 }
 document.getElementById('leaderboardToggle').addEventListener('click', ()=>{
