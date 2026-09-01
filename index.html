@@ -773,7 +773,7 @@
         <div class="sb-value" id="timeVal">60</div>
       </div>
       <div class="sb-box">
-        <div class="sb-label">Récord</div>
+       <div class="sb-label">Tu récord</div>
         <div class="sb-value" id="bestVal">0</div>
       </div>
     </div>
@@ -1660,7 +1660,54 @@ function localLoad(key){
   try{ return localStorage.getItem('valorcracks:' + key); }
   catch(e){ return null; }
 }
+function playerKeyFromName(name){
+  return encodeURIComponent(name.trim().toLowerCase())
+    .replace(/[.#$[\]/]/g, '_');
+}
 
+function loadLocalPersonalBest(name){
+  try{
+    const raw = localLoad('personal-best-' + playerKeyFromName(name));
+    const value = parseInt(raw || '0', 10);
+    return Number.isFinite(value) ? value : 0;
+  }catch(e){
+    return 0;
+  }
+}
+
+function saveLocalPersonalBest(name, value){
+  localSave('personal-best-' + playerKeyFromName(name), String(value));
+}
+
+async function loadPersonalBest(){
+  const name = getPlayerName();
+  const localBest = loadLocalPersonalBest(name);
+
+  if(localBest > best){
+    best = localBest;
+    document.getElementById('bestVal').textContent = best;
+  }
+
+  if(firebaseDb){
+    try{
+      const key = playerKeyFromName(name);
+      const snap = await firebaseDb.ref('leaderboard/' + key).once('value');
+      const saved = snap.val();
+
+      const remoteBest = saved && Number.isFinite(Number(saved.score))
+        ? Number(saved.score)
+        : 0;
+
+      if(remoteBest > best){
+        best = remoteBest;
+        document.getElementById('bestVal').textContent = best;
+        saveLocalPersonalBest(name, best);
+      }
+    }catch(e){
+      console.error('No se pudo cargar el récord personal desde Firebase', e);
+    }
+  }
+}
 async function persistAchievements(){
   const payload = JSON.stringify({
     thresholds: [...unlockedAchievements],
@@ -1952,9 +1999,15 @@ function judge(guess){
   setTimeout(()=>{
     if(correct){
       cardB.classList.add('flash-correct');
-      score++;
-      if(score > best){ best = score; document.getElementById('bestVal').textContent = best; }
-      document.getElementById('streakVal').textContent = score;
+score++;
+
+if(score > best){
+  best = score;
+  document.getElementById('bestVal').textContent = best;
+  saveLocalPersonalBest(getPlayerName(), best);
+}
+
+document.getElementById('streakVal').textContent = score;
       checkAchievements(score);
       if(guess === 'igual'){ checkIgualAchievement(); }
       if(gameConfig.dataset !== 'historic'){
@@ -2021,33 +2074,110 @@ function getPlayerName(){
 }
 
 async function submitToLeaderboard(){
-  const modePrefix = gameConfig.dataset === 'historic' ? 'Leyendas · ' : '';
+  const playerName = getPlayerName();
+
+  const modePrefix = gameConfig.dataset === 'historic'
+    ? 'Leyendas · '
+    : '';
+
   const entry = {
-    name: getPlayerName(),
+    name: playerName,
     score: score,
-    mode: modePrefix + (gameConfig.mode === 'timed' ? ('Contrarreloj ' + gameConfig.duration + 's') : 'Racha infinita'),
+    mode: modePrefix + (
+      gameConfig.mode === 'timed'
+        ? ('Contrarreloj ' + gameConfig.duration + 's')
+        : 'Racha infinita'
+    ),
     date: Date.now()
   };
 
+  const localBest = loadLocalPersonalBest(playerName);
+
+  if(score > localBest){
+    saveLocalPersonalBest(playerName, score);
+  }
+
   if(firebaseDb){
     try{
-      await firebaseDb.ref('leaderboard').push(entry);
+      const key = playerKeyFromName(playerName);
+      const ref = firebaseDb.ref('leaderboard/' + key);
+
+      await ref.transaction(currentEntry => {
+        if(
+          !currentEntry ||
+          Number(score) > Number(currentEntry.score || 0)
+        ){
+          return entry;
+        }
+
+        return currentEntry;
+      });
+
+      const savedSnap = await ref.once('value');
+      const savedEntry = savedSnap.val();
+
+      if(
+        savedEntry &&
+        Number(savedEntry.score) > best
+      ){
+        best = Number(savedEntry.score);
+        document.getElementById('bestVal').textContent = best;
+        saveLocalPersonalBest(playerName, best);
+      }
+
       loadLeaderboard();
       return;
-    }catch(e){ console.error('No se pudo guardar en Firebase', e); }
+
+    }catch(e){
+      console.error('No se pudo guardar el récord en Firebase', e);
+    }
   }
 
   try{
     let entries = [];
+
     const raw = localLoad('leaderboard-entries');
-    if(raw) entries = JSON.parse(raw);
-    entries.push(entry);
-    entries.sort((a,b)=> b.score - a.score);
+
+    if(raw){
+      entries = JSON.parse(raw);
+    }
+
+    const playerKey = playerKeyFromName(playerName);
+
+    const existingIndex = entries.findIndex(
+      e =>
+        playerKeyFromName(String(e.name || '')) === playerKey
+    );
+
+    if(existingIndex === -1){
+      entries.push(entry);
+    }else if(
+      Number(score) >
+      Number(entries[existingIndex].score || 0)
+    ){
+      entries[existingIndex] = entry;
+    }
+
+    entries.sort(
+      (a,b) =>
+        Number(b.score || 0) -
+        Number(a.score || 0)
+    );
+
     entries = entries.slice(0, 100);
-    localSave('leaderboard-entries', JSON.stringify(entries));
+
+    localSave(
+      'leaderboard-entries',
+      JSON.stringify(entries)
+    );
+
     renderLeaderboard(entries);
+
   }catch(e){
-    console.error('No se pudo guardar el ranking localmente', e);
+    console.error(
+      'No se pudo guardar el ranking localmente',
+      e
+    );
   }
 }
 
@@ -2056,7 +2186,7 @@ async function loadLeaderboard(){
 
   if(firebaseDb){
     try{
-      const snap = await firebaseDb.ref('leaderboard').orderByChild('score').limitToLast(15).once('value');
+      const snap = await firebaseDb.ref('leaderboard').orderByChild('score').limitToLast(50).once('value');
       const entries = [];
       snap.forEach(child => entries.push(child.val()));
       entries.sort((a,b)=> b.score - a.score);
@@ -2080,16 +2210,62 @@ async function loadLeaderboard(){
 
 function renderLeaderboard(entries){
   const listEl = document.getElementById('leaderboardList');
+
   if(!entries || entries.length === 0){
-    listEl.innerHTML = '<div class="result-line">Todavía no hay puntuaciones. ¡Sé el primero!</div>';
+    listEl.innerHTML =
+      '<div class="result-line">' +
+      'Todavía no hay puntuaciones. ¡Sé el primero!' +
+      '</div>';
+
     return;
   }
-  const top = [...entries].sort((a,b)=> b.score - a.score).slice(0, 15);
-  listEl.innerHTML = top.map((e, i)=>
-    '<div class="lb-row"><span class="lb-pos">#' + (i+1) + '</span>' +
-    '<span class="lb-name">' + escapeHtml(e.name) + '</span>' +
-    '<span class="lb-score">' + e.score + '</span>' +
-    '<span class="lb-mode">' + escapeHtml(e.mode || '') + '</span></div>'
+
+  const bestByPlayer = new Map();
+
+  [...entries].forEach(entry => {
+    if(!entry || !entry.name) return;
+
+    const playerKey =
+      playerKeyFromName(String(entry.name));
+
+    const scoreValue =
+      Number(entry.score || 0);
+
+    const previous =
+      bestByPlayer.get(playerKey);
+
+    if(
+      !previous ||
+      scoreValue > Number(previous.score || 0)
+    ){
+      bestByPlayer.set(playerKey, {
+        ...entry,
+        score: scoreValue
+      });
+    }
+  });
+
+  const top = [...bestByPlayer.values()]
+    .sort(
+      (a,b) =>
+        Number(b.score || 0) -
+        Number(a.score || 0)
+    )
+    .slice(0, 5);
+
+  listEl.innerHTML = top.map((e, i) =>
+    '<div class="lb-row">' +
+      '<span class="lb-pos">#' + (i + 1) + '</span>' +
+      '<span class="lb-name">' +
+        escapeHtml(e.name) +
+      '</span>' +
+      '<span class="lb-score">' +
+        e.score + ' ptos.' +
+      '</span>' +
+      '<span class="lb-mode">' +
+        escapeHtml(e.mode || '') +
+      '</span>' +
+    '</div>'
   ).join('');
 }
 
@@ -2152,8 +2328,9 @@ function startGame(){
     return;
   }
 
-  score = 0;
-  document.getElementById('streakVal').textContent = 0;
+score = 0;
+document.getElementById('streakVal').textContent = 0;
+loadPersonalBest();
   document.getElementById('scoreLabel').textContent = gameConfig.mode === 'timed' ? 'Aciertos' : 'Racha';
   document.getElementById('resultPanel').classList.remove('show');
   document.getElementById('restartBtn').style.display = 'none';
@@ -2180,8 +2357,11 @@ document.getElementById('restartBtn').addEventListener('click', ()=>{
   document.getElementById('restartBtn').style.display = 'none';
   startGame();
 });
-document.getElementById('shareBtn').addEventListener('click', shareResult);
-document.getElementById('startBtn').addEventListener('click', startGame);
+document.getElementById('playerNameInput')
+  .addEventListener('change', loadPersonalBest);
+
+document.getElementById('playerNameInput')
+  .addEventListener('blur', loadPersonalBest);
 
 document.querySelectorAll('#modeToggle .mode-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>{
@@ -2226,6 +2406,7 @@ document.getElementById('collectionToggle').addEventListener('click', ()=>{
   if(panel.classList.contains('show')){ renderCollectionPanel(); }
 });
 loadCollectionData();
+loadPersonalBest();
 startGame();
 </script>
   <div style="position: fixed; bottom: 10px; right: 15px; z-index: 9999; background: rgba(0,0,0,0.8); padding: 5px 10px; border-radius: 5px; font-size: 12px;">
