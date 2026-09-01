@@ -2058,6 +2058,12 @@ function endGame(reason){
   gameActive = false;
   clearInterval(timerInterval);
   setButtonsEnabled(false);
+  document.getElementById('restartBtn').style.display = 'inline-block';
+  showResultPanel(reason);
+}
+  gameActive = false;
+  clearInterval(timerInterval);
+  setButtonsEnabled(false);
   document.getElementById('restartBtn').style.display = 'none';
   showResultPanel(reason);
 }
@@ -2275,6 +2281,23 @@ function escapeHtml(s){
 }
 
 function showResultPanel(reason){
+  const panel = document.getElementById('resultPanel');
+  const titleEl = document.getElementById('resultTitle');
+
+  if(reason === 'timeup'){
+    titleEl.textContent = '¡Se acabó el tiempo! Aciertos: ' + score;
+  }else if(reason === 'lost'){
+    titleEl.textContent = '¡Partida terminada! Racha final: ' + score;
+  }else{
+    titleEl.textContent = 'Partida terminada. Puntuación: ' + score;
+  }
+
+  panel.classList.add('show');
+
+  if(score > 0){
+    submitToLeaderboard();
+  }
+}
   const panel = document.getElementById('resultPanel');
   document.getElementById('resultTitle').textContent =
     reason === 'timeup' ? '¡Se acabó el tiempo!' : '';
