@@ -1,1 +1,258 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+    <title>COSTUM — Juegos</title>
+
+    <meta name="description" content="COSTUM — tu plataforma de juegos.">
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Arial, Helvetica, sans-serif;
+            color: #ffffff;
+            background:
+                radial-gradient(circle at 15% 0%, rgba(101, 230, 165, 0.12), transparent 35%),
+                radial-gradient(circle at 85% 0%, rgba(110, 90, 255, 0.12), transparent 35%),
+                linear-gradient(180deg, #07110d 0%, #020605 100%);
+        }
+
+        .container {
+            width: min(1200px, 92%);
+            margin: auto;
+            padding: 45px 0 70px;
+        }
+
+        /* CABECERA */
+
+        header {
+            text-align: center;
+            margin-bottom: 55px;
+        }
+
+        .brand {
+            margin: 0;
+            font-size: clamp(48px, 8vw, 76px);
+            font-weight: 900;
+            letter-spacing: 5px;
+        }
+
+        .brand span {
+            color: #65e6a5;
+        }
+
+        .subtitle {
+            margin: 14px 0 0;
+            color: #aeb8b4;
+            font-size: 18px;
+        }
+
+        /* TÍTULO */
+
+        .section-title {
+            text-align: center;
+            font-size: 36px;
+            margin: 0 0 30px;
+        }
+
+        /* JUEGOS */
+
+        .games {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+            gap: 25px;
+        }
+
+        .game-card {
+            display: block;
+            text-decoration: none;
+            color: white;
+            background: rgba(15, 27, 23, 0.96);
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            border-radius: 22px;
+            padding: 22px;
+            transition:
+                transform 0.2s ease,
+                border-color 0.2s ease,
+                box-shadow 0.2s ease;
+        }
+
+        .game-card:hover {
+            transform: translateY(-7px);
+            border-color: #65e6a5;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.35);
+        }
+
+        .game-image {
+            width: 100%;
+            height: 220px;
+            border-radius: 17px;
+            background:
+                linear-gradient(135deg, #0b3d2e, #145b45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .game-image img {
+            width: 85%;
+            height: 85%;
+            object-fit: contain;
+        }
+
+        .placeholder {
+            font-size: 80px;
+        }
+
+        .game-name {
+            font-size: 28px;
+            font-weight: 900;
+            margin-bottom: 8px;
+        }
+
+        .game-description {
+            color: #aeb8b4;
+            line-height: 1.55;
+            min-height: 50px;
+        }
+
+        .play-button {
+            display: inline-block;
+            margin-top: 18px;
+            background: #65e6a5;
+            color: #06100c;
+            font-weight: 900;
+            padding: 11px 19px;
+            border-radius: 10px;
+        }
+
+        /* PIE */
+
+        footer {
+            text-align: center;
+            margin-top: 65px;
+            color: #68736e;
+            font-size: 14px;
+        }
+
+        /* MÓVIL */
+
+        @media (max-width: 600px) {
+            .container {
+                padding-top: 30px;
+            }
+
+            .subtitle {
+                font-size: 15px;
+            }
+
+            .section-title {
+                font-size: 29px;
+            }
+
+            .game-image {
+                height: 190px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <header>
+        <h1 class="brand">COST<span>UM</span></h1>
+
+        <p class="subtitle">
+            Tu plataforma de juegos
+        </p>
+    </header>
+
+
+    <main>
+
+        <h2 class="section-title">
+            Juegos
+        </h2>
+
+
+        <div class="games">
+
+            <!-- VALORCRACKS -->
+
+            <a class="game-card" href="valorcracks/">
+
+                <div class="game-image">
+                    <img
+                        src="valorcracks/valorcracks-logo.png"
+                        alt="ValorCracks"
+                    >
+                </div>
+
+                <div class="game-name">
+                    ValorCracks
+                </div>
+
+                <div class="game-description">
+                    Compara los valores de mercado de
+                    jugadores de fútbol y demuestra cuánto sabes.
+                </div>
+
+                <span class="play-button">
+                    Jugar
+                </span>
+
+            </a>
+
+
+            <!-- SEGUNDO JUEGO -->
+
+            <a class="game-card" href="juego2/">
+
+                <div class="game-image">
+                    <div class="placeholder">
+                        🎮
+                    </div>
+                </div>
+
+                <div class="game-name">
+                    Nuevo juego
+                </div>
+
+                <div class="game-description">
+                    Próximamente podrás jugar aquí a tu segundo juego.
+                </div>
+
+                <span class="play-button">
+                    Jugar
+                </span>
+
+            </a>
+
+        </div>
+
+    </main>
+
+
+    <footer>
+        © COSTUM
+    </footer>
+
+</div>
+
+</body>
+</html>
